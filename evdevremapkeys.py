@@ -35,6 +35,7 @@ from evdev import InputDevice, UInput, categorize, ecodes
 from xdg import BaseDirectory
 import yaml
 
+repeat_tasks = {}
 
 @asyncio.coroutine
 def handle_events(input, output, remappings):
@@ -49,12 +50,29 @@ def handle_events(input, output, remappings):
                 output.syn()
 
 
+def repeat(event, rate, output):
+    while True:
+        # print('repeat event {}'.format(event))
+        output.write_event(event)
+        output.syn()
+        yield from asyncio.sleep(rate)
+
+
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
+        pressed = event.value is 1
+        original_code = event.code
         event.code = remapping['code']
         event.type = remapping.get('type', None) or event.type
         event.value = remapping.get('value', None) or event.value
         output.write_event(event)
+        rate = remapping.get('repeat', None)
+        if rate:
+            repeat_task = repeat_tasks.pop(original_code, None)
+            if repeat_task:
+                repeat_task.cancel()
+            if pressed:
+                repeat_tasks[original_code] = asyncio.ensure_future(repeat(event, rate, output))
     output.syn()
 
 
@@ -98,7 +116,8 @@ def resolve_ecodes(by_name):
         by_id[ecodes.ecodes[key]] = [{
             'code': ecodes.ecodes[value['code']] if 'code' in value else None,
             'type': ecodes.ecodes[value['type']] if 'type' in value else None,
-            'value': value['value'] if 'value' in value else None
+            'value': value['value'] if 'value' in value else None,
+            'repeat': value['repeat'] if 'repeat' in value else None
         } for value in values]
     return by_id
 

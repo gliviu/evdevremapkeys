@@ -13,8 +13,10 @@ devices:
     - code: REL_WHEEL
       type: EV_REL
       value: 1
-    - code: KEY_A
+      repeat: .1
+    # - code: KEY_A
     BTN_SIDE:
     - code: REL_WHEEL
       type: EV_REL
       value: -1
+      repeat: .1
