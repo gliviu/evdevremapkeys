@@ -6,7 +6,6 @@ devices:
 #     KEY_CAPSLOCK:
 #     - KEY_Z
 - input_name: 'Compx 2.4G Receiver'
-  input_phys: 'usb-0000:00:1d.0-1.2/input1'
   output_name: remap-mouse
   remappings:
     BTN_EXTRA:

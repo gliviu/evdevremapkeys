@@ -126,7 +126,8 @@ def find_input(device):
 def register_device(device):
     input = find_input(device)
     if input is None:
-        raise NameError("Can't find input device")
+        raise NameError("Can't find input device '{}'".format(
+            device.get('input_name', None) or device.get('input_phys', None) or device.get('input_fn', None)))
     input.grab()
 
     caps = input.capabilities()
@@ -135,7 +136,8 @@ def register_device(device):
 
     remappings = device['remappings']
     extended = set(caps[ecodes.EV_KEY])
-    [extended.update(keys) for keys in remappings.values()]
+    # [extended.update(keys) for keys in remappings.values()]
+    [extended.update(keys) for keys in list(map(lambda x: x['code'], remappings.values()))]
     caps[ecodes.EV_KEY] = list(extended)
 
     output = UInput(caps, name=device['output_name'])
