@@ -50,10 +50,10 @@ def handle_events(input, output, remappings):
 
 
 def remap_event(output, event, remappings):
-    for code in remappings[event.code]:
-        event.code = code
-        event.type = ecodes.EV_REL
-        event.value = 1
+    for remapping in remappings[event.code]:
+        event.code = remapping.code
+        # event.type = ecodes.EV_REL
+        # event.value = 1
         output.write_event(event)
     output.syn()
 
@@ -75,15 +75,31 @@ def load_config(config_override):
     with open(conf_path.as_posix(), 'r') as fd:
         config = yaml.safe_load(fd)
         for device in config['devices']:
+            device['remappings'] = normalize_config(device['remappings'])
             device['remappings'] = resolve_ecodes(device['remappings'])
-
     return config
 
+def normalize_config(by_name):
+    norm = {}
+    for key, values in by_name.items():
+        new_values = []
+        for value in values:
+            if type(value) is str:
+                new_values.append({'code': value})
+            else:
+                new_values.append(value)
+        norm[key] = new_values
+    return norm
 
 def resolve_ecodes(by_name):
     by_id = {}
     for key, values in by_name.items():
-        by_id[ecodes.ecodes[key]] = [ecodes.ecodes[value] for value in values]
+        # by_id[ecodes.ecodes[key]] = [ecodes.ecodes[value] for value in values]
+        by_id[ecodes.ecodes[key]] = [{
+            'code': ecodes.ecodes[value['code']] if 'code' in value else None,
+            'type': ecodes.ecodes[value['type']] if 'type' in value else None,
+            'value': value['value'] if 'value' in value else None
+        } for value in values]
     return by_id
 
 

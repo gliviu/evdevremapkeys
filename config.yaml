@@ -10,6 +10,8 @@ devices:
   output_name: remap-mouse
   remappings:
     BTN_EXTRA:
-    - REL_WHEEL
+    - code: REL_WHEEL
+      type: EV_REL
+      value: 1
     BTN_SIDE:
     - KEY_C
