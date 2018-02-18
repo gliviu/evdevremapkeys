@@ -52,6 +52,8 @@ def handle_events(input, output, remappings):
 def remap_event(output, event, remappings):
     for code in remappings[event.code]:
         event.code = code
+        event.type = ecodes.EV_REL
+        event.value = 1
         output.write_event(event)
     output.syn()
 
@@ -158,7 +160,35 @@ def list_devices():
     for device in reversed(devices):
         print('%s:\t"%s" | "%s"' % (device.fn, device.phys, device.name))
 
+def test_keys(dev_fn):
+    device = evdev.InputDevice(dev_fn)
+    for event in device.read_loop():
+        if event.type == ecodes.EV_KEY:
+            if event.code in ecodes.KEY:
+                print('type:{}, code:{}, val:{}'.format(ecodes.EV[event.type], ecodes.KEY[event.code], event.value))
+            if event.code in ecodes.BTN:
+                print('type:{}, code:{}, val:{}'.format(ecodes.EV[event.type], ecodes.BTN[event.code], event.value))
+        elif event.type == ecodes.EV_REL:
+            print('type:{}, code:{}, val:{}'.format(ecodes.EV[event.type], ecodes.REL[event.code], event.value))
+        elif event.type == ecodes.EV_MSC:
+            pass
+        elif event.type == ecodes.EV_SYN:
+            pass
+        else:
+            print('type:{}, code:{}, val:{}'.format(ecodes.EV[event.type], event.code, event.value))
+
+import time
 if __name__ == '__main__':
+    # mouse = InputDevice('/dev/input/event7')
+    # ui = UInput.from_device(mouse, name='keyboard-mouse-device')
+    # print(ui.capabilities(verbose=True).keys())
+    # while True:
+    #     ui.write(ecodes.EV_REL, ecodes.REL_WHEEL, 1)
+    #     ui.syn()
+    #     time.sleep(1)
+    # ui.close()
+
+
     parser = argparse.ArgumentParser(description='Re-bind keys for input devices')
     parser.add_argument('-d', '--daemon',
                         help='Run as a daemon', action='store_true')
@@ -166,9 +196,13 @@ if __name__ == '__main__':
                         help='Config file that overrides default location')
     parser.add_argument('-l', '--list-devices', action='store_true',
                         help='List input devices by name and physical address')
+    parser.add_argument('-t', '--test-keys',
+                        help='Test keyboard and mouse input keys')
     args = parser.parse_args()
     if args.list_devices:
         list_devices()
+    elif args.test_keys:
+        test_keys(args.test_keys)
     elif args.daemon:
         with daemon.DaemonContext():
             run_loop(args)
