@@ -5,16 +5,21 @@ devices:
 #   remappings:
 #     KEY_CAPSLOCK:
 #     - KEY_Z
+#     - code: KEY_C
 - input_name: 'Compx 2.4G Receiver'
   input_fn: '/dev/input/event7'
   output_name: remap-mouse
   remappings:
     BTN_EXTRA:
-    - code: REL_WHEEL
-      type: EV_REL
+    # - code: REL_WHEEL
+    #   type: EV_REL
+    #   value: 1
+    #   repeat: .1
+    # - code: KEY_A
+    - code: BTN_LEFT
+      type: EV_KEY
       value: 1
       repeat: .1
-    # - code: KEY_A
     BTN_SIDE:
     - code: REL_WHEEL
       type: EV_REL

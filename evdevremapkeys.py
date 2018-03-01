@@ -50,6 +50,7 @@ def handle_events(input, output, remappings):
                 output.syn()
 
 
+@asyncio.coroutine
 def repeat(event, rate, output):
     while True:
         # print('repeat event {}'.format(event))
@@ -97,9 +98,25 @@ def load_config(config_override):
             device['remappings'] = resolve_ecodes(device['remappings'])
     return config
 
-def normalize_config(by_name):
+# Transforms from
+# {'remappings': {
+#     'BTN_EXTRA': [
+#         'KEY_Z',
+#         'KEY_A',
+#         {'code': 'KEY_X', 'value': 1}
+#     ]
+# }}
+# into
+# {'remappings': {
+#     'BTN_EXTRA': [
+#         {'code': 'KEY_Z'},
+#         {'code': 'KEY_A'},
+#         {'code': 'KEY_X', 'value': 1}
+#     ]
+# }}
+def normalize_config(remappings):
     norm = {}
-    for key, values in by_name.items():
+    for key, values in remappings.items():
         new_values = []
         for value in values:
             if type(value) is str:
@@ -197,7 +214,7 @@ def list_devices():
     for device in reversed(devices):
         print('%s:\t"%s" | "%s"' % (device.fn, device.phys, device.name))
 
-def test_keys(dev_fn):
+def test_device(dev_fn):
     device = evdev.InputDevice(dev_fn)
     for event in device.read_loop():
         if event.type == ecodes.EV_KEY:
@@ -233,13 +250,13 @@ if __name__ == '__main__':
                         help='Config file that overrides default location')
     parser.add_argument('-l', '--list-devices', action='store_true',
                         help='List input devices by name and physical address')
-    parser.add_argument('-t', '--test-keys',
+    parser.add_argument('-t', '--test-device',
                         help='Test keyboard and mouse input keys')
     args = parser.parse_args()
     if args.list_devices:
         list_devices()
-    elif args.test_keys:
-        test_keys(args.test_keys)
+    elif args.test_device:
+        test_device(args.test_device)
     elif args.daemon:
         with daemon.DaemonContext():
             run_loop(args)
