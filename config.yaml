@@ -10,6 +10,8 @@ devices:
   input_fn: '/dev/input/event7'
   output_name: remap-mouse
   remappings:
+    BTN_LEFT:
+    - KEY_A
     BTN_EXTRA:
     # - code: REL_WHEEL
     #   type: EV_REL

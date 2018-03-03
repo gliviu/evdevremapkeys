@@ -41,6 +41,7 @@ repeat_tasks = {}
 def handle_events(input, output, remappings):
     while True:
         events = yield from input.async_read()  # noqa
+        print(event)
         for event in events:
             if event.type == ecodes.EV_KEY and \
                event.code in remappings:
@@ -51,12 +52,14 @@ def handle_events(input, output, remappings):
 
 
 @asyncio.coroutine
-def repeat(event, rate, output):
+def repeat(event, rate, values, output):
     while True:
-        # print('repeat event {}'.format(event))
-        output.write_event(event)
-        output.syn()
-        yield from asyncio.sleep(rate)
+        for value in values:
+            event.value = value
+            print('repeat event {}'.format(event))
+            output.write_event(event)
+            output.syn()
+            yield from asyncio.sleep(rate)
 
 
 def remap_event(output, event, remappings):
@@ -64,19 +67,22 @@ def remap_event(output, event, remappings):
         pressed = event.value is 1
         original_code = event.code
         event.code = remapping['code']
-        event.type = remapping.get('type', None) or event.type
-        event.value = remapping.get('value', None) or event.value
-        output.write_event(event)
+        event.type = remapping.get('type', event.type)
         rate = remapping.get('repeat', None)
+        values = remapping.get('value', [event.value])
         if rate:
             repeat_task = repeat_tasks.pop(original_code, None)
             if repeat_task:
                 repeat_task.cancel()
             if pressed:
-                repeat_tasks[original_code] = asyncio.ensure_future(repeat(event, rate, output))
-    output.syn()
+                repeat_tasks[original_code] = asyncio.ensure_future(repeat(event, rate, values, output))
+        else:
+            for value in values:
+                event.value = value
+                output.write_event(event)
+                output.syn()
 
-
+import pprint
 def load_config(config_override):
     conf_path = None
     if config_override is None:
@@ -96,35 +102,50 @@ def load_config(config_override):
         for device in config['devices']:
             device['remappings'] = normalize_config(device['remappings'])
             device['remappings'] = resolve_ecodes(device['remappings'])
+    pprint.PrettyPrinter().pprint(config)
     return config
 
-# Transforms from
+# Converts general config schema
 # {'remappings': {
 #     'BTN_EXTRA': [
 #         'KEY_Z',
 #         'KEY_A',
 #         {'code': 'KEY_X', 'value': 1}
+#         {'code': 'KEY_Y', 'value': [1,0]]}
 #     ]
 # }}
-# into
+# into fixed format
 # {'remappings': {
 #     'BTN_EXTRA': [
 #         {'code': 'KEY_Z'},
 #         {'code': 'KEY_A'},
-#         {'code': 'KEY_X', 'value': 1}
+#         {'code': 'KEY_X', 'value': [1]}
+#         {'code': 'KEY_Y', 'value': [1,0]]}
 #     ]
 # }}
 def normalize_config(remappings):
     norm = {}
-    for key, values in remappings.items():
-        new_values = []
-        for value in values:
-            if type(value) is str:
-                new_values.append({'code': value})
+    for key, mappings in remappings.items():
+        new_mappings = []
+        for mapping in mappings:
+            if type(mapping) is str:
+                new_mappings.append({'code': mapping})
             else:
-                new_values.append(value)
-        norm[key] = new_values
+                normalize_value(mapping)
+                new_mappings.append(mapping)
+        norm[key] = new_mappings
     return norm
+
+def normalize_value(mapping):
+    value = mapping.get('value')
+    if value is None:
+        pass
+    if type(value) is int:
+        mapping['value'] = [mapping['value']]
+    elif type(value) is list:
+        pass
+    else:
+        raise TypeError('Unsupported type {} for {}', type(value), str(value))
 
 def resolve_ecodes(by_name):
     by_id = {}
