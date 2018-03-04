@@ -146,14 +146,9 @@ def normalize_config(remappings):
 
 def normalize_value(mapping):
     value = mapping.get('value')
-    if value is None:
-        pass
-    if type(value) is int:
-        mapping['value'] = [mapping['value']]
-    elif type(value) is list:
-        pass
-    else:
-        raise TypeError('Unsupported type {} for {}', type(value), str(value))
+    if value is None or type(value) is list:
+        return
+    mapping['value'] = [mapping['value']]
 
 def resolve_ecodes(by_name):
     def resolve_mapping(mapping):
