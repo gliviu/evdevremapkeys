@@ -41,7 +41,6 @@ repeat_tasks = {}
 def handle_events(input, output, remappings):
     while True:
         events = yield from input.async_read()  # noqa
-        print(event)
         for event in events:
             if event.type == ecodes.EV_KEY and \
                event.code in remappings:
@@ -67,9 +66,9 @@ def remap_event(output, event, remappings):
         pressed = event.value is 1
         original_code = event.code
         event.code = remapping['code']
-        event.type = remapping.get('type', event.type)
+        event.type = remapping.get('type', None) or event.type
         rate = remapping.get('repeat', None)
-        values = remapping.get('value', [event.value])
+        values = remapping.get('value', None) or [event.value]
         if rate:
             repeat_task = repeat_tasks.pop(original_code, None)
             if repeat_task:
@@ -148,17 +147,17 @@ def normalize_value(mapping):
         raise TypeError('Unsupported type {} for {}', type(value), str(value))
 
 def resolve_ecodes(by_name):
-    by_id = {}
-    for key, values in by_name.items():
-        # by_id[ecodes.ecodes[key]] = [ecodes.ecodes[value] for value in values]
-        by_id[ecodes.ecodes[key]] = [{
-            'code': ecodes.ecodes[value['code']] if 'code' in value else None,
-            'type': ecodes.ecodes[value['type']] if 'type' in value else None,
-            'value': value['value'] if 'value' in value else None,
-            'repeat': value['repeat'] if 'repeat' in value else None
-        } for value in values]
-    return by_id
-
+    return {ecodes.ecodes[key]: list(map(apply_ecodes, mappings))
+        for key, mappings in by_name.items()}
+    # by_id = {}
+    # for key, mappings in by_name.items():
+    #     by_id[ecodes.ecodes[key]] = mappings
+    #     for mapping in mappings: apply_ecodes(mapping)
+    # return by_id
+def apply_ecodes(mapping):
+    if 'code' in mapping: mapping['code'] =  ecodes.ecodes[mapping['code']]
+    if 'type' in mapping: mapping['type'] =  ecodes.ecodes[mapping['type']]
+    return mapping
 
 def find_input(device):
     name = device.get('input_name', None);
@@ -262,6 +261,9 @@ if __name__ == '__main__':
     #     ui.syn()
     #     time.sleep(1)
     # ui.close()
+    l = [1, 2, 3]
+#     xxx = list(map(lambda x:x+1, l))
+    xxx = [v+1 for v in l]
 
 
     parser = argparse.ArgumentParser(description='Re-bind keys for input devices')
