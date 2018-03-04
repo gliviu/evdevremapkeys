@@ -12,7 +12,7 @@ devices:
   remappings:
     # BTN_LEFT:
     # - KEY_A
-    BTN_EXTRA:
+    BTN_LEFT:
     # - code: REL_WHEEL
     #   type: EV_REL
     #   value: 1
@@ -22,7 +22,9 @@ devices:
       # type: EV_KEY
       value: [1, 0]
       repeat: true
-      rate: .1
+      count: 2
+      # ignore_depress: true
+      rate: .2
     BTN_SIDE:
     - code: REL_WHEEL
       type: EV_REL

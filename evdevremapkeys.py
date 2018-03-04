@@ -35,6 +35,7 @@ from evdev import InputDevice, UInput, categorize, ecodes
 from xdg import BaseDirectory
 import yaml
 
+DEFAULT_RATE = .1  # seconds
 repeat_tasks = {}
 
 @asyncio.coroutine
@@ -51,30 +52,38 @@ def handle_events(input, output, remappings):
 
 
 @asyncio.coroutine
-def repeat(event, rate, values, output):
-    while True:
+def repeat_event(event, rate, count, values, output):
+    if count==0: count=-1
+    while count is not 0:
+        count-=1
         for value in values:
             event.value = value
-            print('repeat event {}'.format(event))
+            print('repeat event {} {}'.format(count, event))
             output.write_event(event)
             output.syn()
-            yield from asyncio.sleep(rate)
+        yield from asyncio.sleep(rate)
 
 
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
         pressed = event.value is 1
+        ignore_depress = remapping.get('ignore_depress', False)
+        if ignore_depress and not pressed:
+            return
         original_code = event.code
         event.code = remapping['code']
         event.type = remapping.get('type', None) or event.type
-        rate = remapping.get('repeat', None)
         values = remapping.get('value', None) or [event.value]
-        if rate:
+        repeat = remapping.get('repeat', False)
+        if repeat:
+            rate = remapping.get('rate', DEFAULT_RATE)
+            count = remapping.get('count', 0)
             repeat_task = repeat_tasks.pop(original_code, None)
             if repeat_task:
                 repeat_task.cancel()
             if pressed:
-                repeat_tasks[original_code] = asyncio.ensure_future(repeat(event, rate, values, output))
+                repeat_tasks[original_code] = asyncio.ensure_future(
+                    repeat_event(event, rate, count, values, output))
         else:
             for value in values:
                 event.value = value
@@ -147,17 +156,12 @@ def normalize_value(mapping):
         raise TypeError('Unsupported type {} for {}', type(value), str(value))
 
 def resolve_ecodes(by_name):
-    return {ecodes.ecodes[key]: list(map(apply_ecodes, mappings))
+    def resolve_mapping(mapping):
+        if 'code' in mapping: mapping['code'] =  ecodes.ecodes[mapping['code']]
+        if 'type' in mapping: mapping['type'] =  ecodes.ecodes[mapping['type']]
+        return mapping
+    return {ecodes.ecodes[key]: list(map(resolve_mapping, mappings))
         for key, mappings in by_name.items()}
-    # by_id = {}
-    # for key, mappings in by_name.items():
-    #     by_id[ecodes.ecodes[key]] = mappings
-    #     for mapping in mappings: apply_ecodes(mapping)
-    # return by_id
-def apply_ecodes(mapping):
-    if 'code' in mapping: mapping['code'] =  ecodes.ecodes[mapping['code']]
-    if 'type' in mapping: mapping['type'] =  ecodes.ecodes[mapping['type']]
-    return mapping
 
 def find_input(device):
     name = device.get('input_name', None);
