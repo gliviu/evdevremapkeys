@@ -194,12 +194,15 @@ def register_device(device):
 
     remappings = device['remappings']
     extended = set(caps[ecodes.EV_KEY])
-    extended.update([l2['code'] for l1 in remappings.values() for l2 in l1])
+    flatmap = lambda list: [l2 for l1 in list for l2 in l1]
+    extended.update([remapping['code'] for remapping in flatmap(remappings.values())])
+    print(extended)
     caps[ecodes.EV_KEY] = list(extended)
 
     output = UInput(caps, name=device['output_name'])
 
     asyncio.ensure_future(handle_events(input, output, remappings))
+
 
 
 @asyncio.coroutine
