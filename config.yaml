@@ -13,16 +13,15 @@ devices:
     - KEY_Z
     - code: KEY_C
 - input_name: 'Compx 2.4G Receiver'
-  input_fn: '/dev/input/event6'
+  input_fn: '/dev/input/event7'
   output_name: remap-mouse
   remappings:
     BTN_MIDDLE:
     - code: BTN_LEFT
       value: [1, 0]
-      repeat: true
-      count: 2
-      ignore_depress: true
-      rate: .1
+      # repeat: true
+      # count: 2
+      # rate: .1
     BTN_LEFT:
     - code: BTN_LEFT
       value: [1, 0]

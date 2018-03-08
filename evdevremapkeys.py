@@ -67,7 +67,9 @@ def repeat_event(event, rate, count, values, output):
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
         pressed = event.value is 1
-        ignore_depress = remapping.get('ignore_depress', False)
+        count = remapping.get('count', 0)
+        ignore_depress = count > 0 # ignore key-up events when we have to repeat for a certain number of times
+                                   # when count is 0 we will repeat until key-up occurs
         if ignore_depress and not pressed:
             return
         original_code = event.code
@@ -77,7 +79,6 @@ def remap_event(output, event, remappings):
         repeat = remapping.get('repeat', False)
         if repeat:
             rate = remapping.get('rate', DEFAULT_RATE)
-            count = remapping.get('count', 0)
             repeat_task = repeat_tasks.pop(original_code, None)
             if repeat_task:
                 repeat_task.cancel()
@@ -87,6 +88,7 @@ def remap_event(output, event, remappings):
         else:
             for value in values:
                 event.value = value
+                print('event {}'.format(event))
                 output.write_event(event)
                 output.syn()
 
