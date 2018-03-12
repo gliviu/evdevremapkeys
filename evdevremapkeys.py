@@ -53,45 +53,73 @@ def handle_events(input, output, remappings):
 
 @asyncio.coroutine
 def repeat_event(event, rate, count, values, output):
+    print('repeat event count {}'.format(count))
     if count==0: count=-1
     while count is not 0:
         count-=1
         for value in values:
             event.value = value
-            print('repeat event {} {}'.format(count, event))
+            print('remapped event {}'.format(event))
             output.write_event(event)
             output.syn()
         yield from asyncio.sleep(rate)
 
 
 def remap_event(output, event, remappings):
+    print('received event {}'.format(event))
     for remapping in remappings[event.code]:
-        pressed = event.value is 1
-        count = remapping.get('count', 0)
-        ignore_depress = count > 0 # ignore key-up events when we have to repeat for a certain number of times
-                                   # when count is 0 we will repeat until key-up occurs
-        if ignore_depress and not pressed:
-            return
         original_code = event.code
         event.code = remapping['code']
         event.type = remapping.get('type', None) or event.type
         values = remapping.get('value', None) or [event.value]
         repeat = remapping.get('repeat', False)
-        if repeat:
+        if not repeat:
+            for value in values:
+                event.value = value
+                print('remapped event {}'.format(event))
+                output.write_event(event)
+                output.syn()
+        else:
+            key_down = event.value is 1
+            key_up = event.value is 0
+            count = remapping.get('count', 0)
+            if not (key_up or key_down):
+                return
+            ignore_key_up = count > 0  # count > 0  - ignore key-up events
+                                       # count is 0 - repeat until key-up occurs
+            if ignore_key_up and key_up:
+                return
             rate = remapping.get('rate', DEFAULT_RATE)
             repeat_task = repeat_tasks.pop(original_code, None)
             if repeat_task:
                 repeat_task.cancel()
-            if pressed:
+            if key_down:
                 repeat_tasks[original_code] = asyncio.ensure_future(
                     repeat_event(event, rate, count, values, output))
-        else:
-            for value in values:
-                event.value = value
-                print('event {}'.format(event))
-                output.write_event(event)
-                output.syn()
 
+
+# Parses yaml config file and outputs normalized configuration:
+#  'devices': [{
+#    'input_fn': '/dev/input/event4',             # device identifier [optional]
+#    'input_name': 'AT keyboard',                 # device identifier [optional]
+#    'input_phys': 'isa0060/serio0/input0d',      # device identifier [optional]
+#    'output_name': 'remap-kbd',
+#    'remappings': {
+#      42: [{             # Matched key/button code
+#        'code': 30,      # Remapped key/button code
+#        'type': EV_REL,  # Overrides received event type [optional]
+#        'value': [1, 0], # Overrides received event values [optional].
+#                         # If multiple values are specified they will be applied in sequence.
+#                         # EV_KEY events - 1: key down, 0: key up
+#                         # EV_REL events - value signifies relative movement (ie. -3 could scroll down by three lines)
+#        'repeat': True,  # Repeat key/button code [optional, default:False]
+#        'rate': 0.2,     # Repeat rate in seconds [optional, default:0.1]_
+#        'count': 3       # Repeat counter [optional, default:0]
+#                         # If count is 0 it will repeat until key/button is depressed
+#                         # If count > 0 it will repeat specified number of times
+#      }]
+#    }
+#  }]
 import pprint
 def load_config(config_override):
     conf_path = None
@@ -179,14 +207,23 @@ def find_input(device):
         return input
     return None
 
-
+import errno
+def get_device_identifier(device):
+    return (device.get('input_name', None)
+        or device.get('input_phys', None)
+        or device.get('input_fn', None))
 def register_device(device):
     input = find_input(device)
     if input is None:
-        raise NameError("Can't find input device '{}'".format(
-            device.get('input_name', None) or device.get('input_phys', None)
-            or device.get('input_fn', None)))
-    input.grab()
+        raise NameError("Can't find input device '{}'"
+            .format(get_device_identifier(device)))
+    try:
+        input.grab()
+    except OSError as error:
+        if error.errno is errno.EBUSY:
+            print('Device {} is busy'.format(get_device_identifier(device)))
+        else:
+            raise error
 
     caps = input.capabilities()
     # EV_SYN is automatically added to uinput devices
@@ -194,9 +231,8 @@ def register_device(device):
 
     remappings = device['remappings']
     extended = set(caps[ecodes.EV_KEY])
-    flatmap = lambda list: [l2 for l1 in list for l2 in l1]
+    flatmap = lambda lst: [l2 for l1 in lst for l2 in l1]
     extended.update([remapping['code'] for remapping in flatmap(remappings.values())])
-    print(extended)
     caps[ecodes.EV_KEY] = list(extended)
 
     output = UInput(caps, name=device['output_name'])
