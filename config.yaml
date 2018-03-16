@@ -3,14 +3,23 @@ devices:
   input_fn: '/dev/input/event4'
   output_name: remap-kbd
   remappings:
+    # Emits predefined number of key strokes
     KEY_LEFTSHIFT:
     - code: KEY_A
       value: [1,0]
       repeat: true
-      rate: 0.5
-    # KEY_CAPSLOCK:
-    # - KEY_Z
-    # - code: KEY_C
+      count: 6
+    # Same as above
+    KEY_RIGHTSHIFT:
+    - code: KEY_A
+      value: [1,0,1,0]
+      repeat: true
+      count: 3
+    # Emits key strokes as long as ALT is pressed
+    KEY_LEFTALT:
+    - code: KEY_A
+      value: [1,0,1,0]
+      repeat: true
 - input_name: 'Compx 2.4G Receiver'
   input_fn: '/dev/input/event7'
   output_name: remap-mouse

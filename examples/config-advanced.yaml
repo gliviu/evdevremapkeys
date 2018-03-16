@@ -1,27 +1,28 @@
 devices:
-- input_name: Kingsis Peripherals Evoluent VerticalMouse 4
+- input_name: 'Compx 2.4G Receiver'
+  input_fn: '/dev/input/event7'
   output_name: remap-mouse
   remappings:
     # Map right button to double click
     BTN_RIGHT:
     - code: BTN_LEFT
-      value: [1, 0] # 1: key-down, 0: key-up
+      value: [1, 0] # EV_KEY events - 1: key down, 0: key up
       repeat: true
       count: 2
     # Map side buttons to vertical scroll
     BTN_EXTRA:
     - code: REL_WHEEL
-      type: EV_REL  # emit relative event instead of EV_KEY
-      value: 1   # number of scroll lines
+      type: EV_REL  # change event type
       repeat: true
-      rate: 0.3  # in seconds (defaults to 0.1)
+      rate: 0.3  # repeat rate in seconds (defaults to 0.1)
+      value: 1   # EV_REL events - value signifies relative movement (ie. -3 could scroll down by three lines)
     BTN_SIDE:
     - code: REL_WHEEL
       type: EV_REL
-      value: -1
       repeat: true
-- input_name: 'KINESIS FREESTYLE KB800 KB800 Kinesis Freestyle'
-  input_phys: 'usb-0000:00:14.0-3.3/input0'
+      value: -1
+- input_name: 'AT Translated Set 2 keyboard'
+  input_fn: '/dev/input/event4'
   output_name: remap-kbd
   remappings:
     # Emits predefined number of key strokes
@@ -30,14 +31,14 @@ devices:
       value: [1,0]
       repeat: true
       count: 6
-    # same as above
+    # Same as above
     KEY_RIGHTSHIFT:
     - code: KEY_A
       value: [1,0,1,0]
       repeat: true
       count: 3
-    # Emits key strokes as long as ALT is pressed
+    # Emits double key strokes as long as ALT is pressed
     KEY_LEFTALT:
     - code: KEY_A
-      value: [1,0]
+      value: [1,0,1,0]
       repeat: true

@@ -98,20 +98,21 @@ def remap_event(output, event, remappings):
                     repeat_event(event, rate, count, values, output))
 
 
-# Parses yaml config file and outputs normalized configuration:
+# Parses yaml config file and outputs normalized configuration.
+# Sample output:
 #  'devices': [{
-#    'input_fn': '/dev/input/event4',             # device identifier [optional]
-#    'input_name': 'AT keyboard',                 # device identifier [optional]
-#    'input_phys': 'isa0060/serio0/input0d',      # device identifier [optional]
-#    'output_name': 'remap-kbd',
+#    'input_fn': '',
+#    'input_name': '',
+#    'input_phys': '',
+#    'output_name': '',
 #    'remappings': {
 #      42: [{             # Matched key/button code
-#        'code': 30,      # Remapped key/button code
+#        'code': 30,      # Mapped key/button code
 #        'type': EV_REL,  # Overrides received event type [optional]
-#        'value': [1, 0], # Overrides received event values [optional].
+#                         # Defaults to EV_KEY
+#        'value': [1, 0], # Overrides received event value [optional].
 #                         # If multiple values are specified they will be applied in sequence.
-#                         # EV_KEY events - 1: key down, 0: key up
-#                         # EV_REL events - value signifies relative movement (ie. -3 could scroll down by three lines)
+#                         # Defaults to the value of received event.
 #        'repeat': True,  # Repeat key/button code [optional, default:False]
 #        'rate': 0.2,     # Repeat rate in seconds [optional, default:0.1]_
 #        'count': 3       # Repeat counter [optional, default:0]
