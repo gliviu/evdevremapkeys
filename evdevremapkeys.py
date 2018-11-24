@@ -37,6 +37,7 @@ import yaml
 DEFAULT_RATE = .1  # seconds
 repeat_tasks = {}
 remapped_tasks = {}
+long_press_tasks = {}
 
 @asyncio.coroutine
 def handle_events(input, output, remappings):
@@ -63,6 +64,18 @@ def repeat_event(event, rate, count, values, output):
             output.syn()
         yield from asyncio.sleep(rate)
 
+@asyncio.coroutine
+def long_press_event(long_press_duration, event, values, remapping, output):
+    rate = remapping.get('rate', DEFAULT_RATE)
+    count = remapping.get('count', 1)
+    yield from asyncio.sleep(long_press_duration)
+    for i in range(0, count):
+        for value in values:
+            event.value = value
+            output.write_event(event)
+            output.syn()
+        yield from asyncio.sleep(rate)
+
 
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
@@ -72,7 +85,8 @@ def remap_event(output, event, remappings):
         values = remapping.get('value', None) or [event.value]
         repeat = remapping.get('repeat', False)
         delay = remapping.get('delay', False)
-        if not repeat and not delay:
+        long_press_duration = remapping.get('long_press', 0)
+        if not repeat and not delay and long_press_duration==0:
             for value in values:
                 event.value = value
                 output.write_event(event)
@@ -95,6 +109,25 @@ def remap_event(output, event, remappings):
                 if remapped_tasks[original_code] == count:
                     output.write_event(event)
                     output.syn()
+            elif long_press_duration > 0:
+                if key_down:
+                    long_press_tasks[original_code] = asyncio.ensure_future(
+                        long_press_event(long_press_duration, event, values, remapping, output))
+                if key_up:
+                    long_press_task = long_press_tasks.get(original_code, None)
+                    if long_press_task and long_press_task.done():
+                        del long_press_tasks[original_code]
+                    if long_press_task and not long_press_task.done():
+                        long_press_task.cancel()
+                        del long_press_tasks[original_code]
+                        event.code = original_code
+                        original_value = event.value
+                        event.value = 1  # key down
+                        output.write_event(event)
+                        output.syn()
+                        event.value = original_value
+                        output.write_event(event)
+                        output.syn()
             elif repeat:
                 # count > 0  - ignore key-up events
                 # count is 0 - repeat until key-up occurs
@@ -110,7 +143,6 @@ def remap_event(output, event, remappings):
                     repeat_tasks[original_code] = asyncio.ensure_future(
                         repeat_event(event, rate, count, values, output))
 
-
 # Parses yaml config file and outputs normalized configuration.
 # Sample output:
 #  'devices': [{
@@ -119,24 +151,26 @@ def remap_event(output, event, remappings):
 #    'input_phys': '',
 #    'output_name': '',
 #    'remappings': {
-#      42: [{             # Matched key/button code
-#        'code': 30,      # Mapped key/button code
-#        'type': EV_REL,  # Overrides received event type [optional]
-#                         # Defaults to EV_KEY
-#        'value': [1, 0], # Overrides received event value [optional].
-#                         # If multiple values are specified they will
-#                         # be applied in sequence.
-#                         # Defaults to the value of received event.
-#        'repeat': True,  # Repeat key/button code [optional, default:False]
-#        'delay': True,   # Delay key/button output [optional, default:False]
-#        'rate': 0.2,     # Repeat rate in seconds [optional, default:0.1]
-#        'count': 3       # Repeat/Delay counter [optional, default:0]
-#                         # For repeat:
-#                         # If count is 0 it will repeat until key/button is depressed
-#                         # If count > 0 it will repeat specified number of times
-#                         # For delay:
-#                         # Will suppress key/button output x times before execution [x = count]
-#                         # Ex: count = 1 will execute key press every other time
+#      42: [{                 # Matched key/button code
+#        'code': 30,          # Mapped key/button code
+#        'type': EV_REL,      # Overrides received event type [optional]
+#                             # Defaults to EV_KEY
+#        'value': [1, 0],     # Overrides received event value [optional].
+#                             # If multiple values are specified they will
+#                             # be applied in sequence.
+#                             # Defaults to the value of received event.
+#        'repeat': True,      # Repeat key/button code [optional, default:False]
+#        'delay': True,       # Delay key/button output [optional, default:False]
+#        'rate': 0.2,         # Repeat rate in seconds [optional, default:0.1]
+#        'count': 3           # Repeat/Delay counter [optional, default:0]
+#                             # For repeat:
+#                             # If count is 0 it will repeat until key/button is depressed
+#                             # If count > 0 it will repeat specified number of times
+#                             # For delay:
+#                             # Will suppress key/button output x times before execution [x = count]
+#                             # Ex: count = 1 will execute key press every other time
+#        'long_press': 0.2    # Waits for button to be pressed for amount of seconds
+#                             # before it triggers output event.
 #      }]
 #    }
 #  }]
