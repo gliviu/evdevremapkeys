@@ -69,13 +69,7 @@ def long_press_event(long_press_duration, event, values, remapping, output):
     rate = remapping.get('rate', DEFAULT_RATE)
     count = remapping.get('count', 1)
     yield from asyncio.sleep(long_press_duration)
-    for i in range(0, count):
-        for value in values:
-            event.value = value
-            output.write_event(event)
-            output.syn()
-        yield from asyncio.sleep(rate)
-
+    asyncio.ensure_future(repeat_event(event, rate, count, values, output))
 
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
