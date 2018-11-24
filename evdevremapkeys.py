@@ -24,6 +24,7 @@
 import argparse
 import asyncio
 import functools
+import sys
 from pathlib import Path
 import signal
 
@@ -66,9 +67,14 @@ def repeat_event(event, rate, count, values, output):
 
 @asyncio.coroutine
 def long_press_event(long_press_duration, event, values, remapping, output):
+    long_press_value = remapping.get('long_press_value', None)
+    long_press_code = remapping.get('long_press_code', None)
+    if long_press_code == None or long_press_value == None:
+        print("long_press_value or long_press_code are not specified", file=sys.stderr)
     rate = remapping.get('rate', DEFAULT_RATE)
     count = remapping.get('count', 1)
     yield from asyncio.sleep(long_press_duration)
+    event.code = long_press_code
     asyncio.ensure_future(repeat_event(event, rate, count, values, output))
 
 def remap_event(output, event, remappings):
@@ -79,8 +85,8 @@ def remap_event(output, event, remappings):
         values = remapping.get('value', None) or [event.value]
         repeat = remapping.get('repeat', False)
         delay = remapping.get('delay', False)
-        long_press_duration = remapping.get('long_press', 0)
-        if not repeat and not delay and long_press_duration==0:
+        long_press_duration = remapping.get('long_press_duration', None)
+        if not repeat and not delay and long_press_duration:
             for value in values:
                 event.value = value
                 output.write_event(event)
@@ -103,10 +109,10 @@ def remap_event(output, event, remappings):
                 if remapped_tasks[original_code] == count:
                     output.write_event(event)
                     output.syn()
-            elif long_press_duration > 0:
+            elif long_press_duration:
                 if key_down:
                     long_press_tasks[original_code] = asyncio.ensure_future(
-                        long_press_event(long_press_duration, event, values, remapping, output))
+                        long_press_event(event, remapping, output))
                 if key_up:
                     long_press_task = long_press_tasks.get(original_code, None)
                     if long_press_task and long_press_task.done():
@@ -114,12 +120,10 @@ def remap_event(output, event, remappings):
                     if long_press_task and not long_press_task.done():
                         long_press_task.cancel()
                         del long_press_tasks[original_code]
-                        event.code = original_code
-                        original_value = event.value
                         event.value = 1  # key down
                         output.write_event(event)
                         output.syn()
-                        event.value = original_value
+                        event.value = 0  # key up
                         output.write_event(event)
                         output.syn()
             elif repeat:
