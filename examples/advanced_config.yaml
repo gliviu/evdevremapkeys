@@ -28,16 +28,22 @@ devices:
       count: 4   # send BTN_RIGHT and then skip the next 4 events
 
 #    examples
+#    left double click on right long click
 #    BTN_RIGHT:
-#      - code: BTN_LEFT
-#        long_press: 1
-#        repeat: true
-#        count: 2
-#        value: [1, 0] # EV_KEY events - 1: key down, 0: key up
-#        rate: .1
+#    - code: BTN_RIGHT
+#      long_press_duration: .2
+#      long_press_value: [1, 0] # EV_KEY events - 1: key down, 0: key up
+#      long_press_code: BTN_LEFT
+#      value: [1, 0] # EV_KEY events - 1: key down, 0: key up
+#      repeat: true
+#      rate: .1
+#      count: 2
+#    left click on right long click
 #    BTN_RIGHT:
-#    - code: BTN_LEFT
-#      long_press: .2
+#    - code: BTN_RIGHT
+#      long_press_duration: .2
+#      long_press_value: [1, 0] # EV_KEY events - 1: key down, 0: key up
+#      long_press_code: BTN_LEFT
 #      value: [1, 0] # EV_KEY events - 1: key down, 0: key up
 
 

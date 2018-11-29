@@ -35,6 +35,7 @@ from evdev import ecodes, InputDevice, UInput
 from xdg import BaseDirectory
 import yaml
 
+
 DEFAULT_RATE = .1  # seconds
 repeat_tasks = {}
 remapped_tasks = {}
@@ -71,10 +72,11 @@ def long_press_event(long_press_duration, event, values, remapping, output):
     long_press_code = remapping.get('long_press_code', None)
     if long_press_code == None or long_press_value == None:
         print("long_press_value or long_press_code are not specified", file=sys.stderr)
+    repeat = remapping.get('repeat', False)
     rate = remapping.get('rate', DEFAULT_RATE)
-    count = remapping.get('count', 1)
+    count = 1 if not repeat else remapping.get('count', 1)
     yield from asyncio.sleep(long_press_duration)
-    event.code = long_press_code
+    event.code = ecodes.ecodes[long_press_code]
     asyncio.ensure_future(repeat_event(event, rate, count, values, output))
 
 def remap_event(output, event, remappings):
@@ -86,7 +88,7 @@ def remap_event(output, event, remappings):
         repeat = remapping.get('repeat', False)
         delay = remapping.get('delay', False)
         long_press_duration = remapping.get('long_press_duration', None)
-        if not repeat and not delay and long_press_duration:
+        if not (repeat or delay or long_press_duration):
             for value in values:
                 event.value = value
                 output.write_event(event)
@@ -112,7 +114,7 @@ def remap_event(output, event, remappings):
             elif long_press_duration:
                 if key_down:
                     long_press_tasks[original_code] = asyncio.ensure_future(
-                        long_press_event(event, remapping, output))
+                        long_press_event(long_press_duration, event, values, remapping, output))
                 if key_up:
                     long_press_task = long_press_tasks.get(original_code, None)
                     if long_press_task and long_press_task.done():
