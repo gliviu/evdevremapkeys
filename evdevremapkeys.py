@@ -68,19 +68,20 @@ def repeat_event(event, rate, count, values, output):
         yield from asyncio.sleep(rate)
 
 @asyncio.coroutine
-def long_press_event(long_press_duration, event, remapping, output):
-    long_press_value = remapping.get('long_press_value', None)
-    long_press_code = remapping.get('long_press_code', None)
-    long_press_type = remapping.get('long_press_type', None)
+def long_press_event(long_press, event, original_code, output):
+    long_press_duration = long_press.get('duration', None)
+    long_press_value = long_press.get('value', None)
+    long_press_code = long_press.get('code', None)
+    long_press_type = long_press.get('type', None)
     if long_press_code == None or long_press_value == None:
         print("long_press_value or long_press_code are not specified", file=sys.stderr)
-    repeat = remapping.get('repeat', False)
-    rate = remapping.get('rate', DEFAULT_RATE)
-    count = 1 if not repeat else remapping.get('count', 1)
+    repeat = long_press.get('repeat', False)
+    rate = long_press.get('rate', DEFAULT_RATE)
+    count = 1 if not repeat else long_press.get('count', 0)
     yield from asyncio.sleep(long_press_duration)
     event.code = ecodes.ecodes[long_press_code]
     event.type = ecodes.ecodes[long_press_type] if long_press_type else event.type
-    asyncio.ensure_future(repeat_event(event, rate, count, long_press_value, output))
+    repeat_tasks[original_code] = asyncio.ensure_future(repeat_event(event, rate, count, long_press_value, output))
 
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
@@ -90,8 +91,8 @@ def remap_event(output, event, remappings):
         values = remapping.get('value', None) or [event.value]
         repeat = remapping.get('repeat', False)
         delay = remapping.get('delay', False)
-        long_press_duration = remapping.get('long_press_duration', None)
-        if not (repeat or delay or long_press_duration):
+        long_press = remapping.get('long_press', None)
+        if not (repeat or delay or long_press):
             for value in values:
                 event.value = value
                 output.write_event(event)
@@ -114,15 +115,17 @@ def remap_event(output, event, remappings):
                 if remapped_tasks[original_code] == count:
                     output.write_event(event)
                     output.syn()
-            elif long_press_duration:
+            elif long_press:
                 if key_down:
                     long_press_tasks[original_code] = asyncio.ensure_future(
-                        long_press_event(long_press_duration, event, remapping, output))
+                        long_press_event(long_press, event, original_code, output))
                 if key_up:
                     long_press_task = long_press_tasks.get(original_code, None)
                     if long_press_task and long_press_task.done():
+                        # long press already handled
                         del long_press_tasks[original_code]
                     if long_press_task and not long_press_task.done():
+                        # handle short press
                         long_press_task.cancel()
                         del long_press_tasks[original_code]
                         event.value = 1  # key down
@@ -131,6 +134,10 @@ def remap_event(output, event, remappings):
                         event.value = 0  # key up
                         output.write_event(event)
                         output.syn()
+                    repeat_task = repeat_tasks.pop(original_code, None)
+                    if repeat_task:
+                        repeat_task.cancel()
+
             elif repeat:
                 # count > 0  - ignore key-up events
                 # count is 0 - repeat until key-up occurs
