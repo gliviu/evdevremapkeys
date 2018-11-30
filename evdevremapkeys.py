@@ -79,8 +79,8 @@ def long_press_event(long_press, event, original_code, output):
     rate = long_press.get('rate', DEFAULT_RATE)
     count = 1 if not repeat else long_press.get('count', 0)
     yield from asyncio.sleep(long_press_duration)
-    event.code = ecodes.ecodes[long_press_code]
-    event.type = ecodes.ecodes[long_press_type] if long_press_type else event.type
+    event.code = long_press_code
+    event.type = long_press_type if long_press_type else event.type
     repeat_tasks[original_code] = asyncio.ensure_future(repeat_event(event, rate, count, long_press_value, output))
 
 def remap_event(output, event, remappings):
@@ -221,7 +221,7 @@ def load_config(config_override):
 #     'BTN_EXTRA': [
 #         {'code': 'KEY_Z'},
 #         {'code': 'KEY_A'},
-#         {'code': 'KEY_X', 'value': [1]}
+#         {'code': 'KEY_X', 'value': 1}
 #         {'code': 'KEY_Y', 'value': [1,0]]}
 #     ]
 # }}
@@ -233,29 +233,30 @@ def normalize_config(remappings):
             if type(mapping) is str:
                 new_mappings.append({'code': mapping})
             else:
-                normalize_value(mapping)
                 new_mappings.append(mapping)
         norm[key] = new_mappings
     return norm
 
+def resolve_ecodes(remappings):
+    new_remappings =  {ecodes.ecodes[key]: mappings
+            for key, mappings in remappings.items()}
+    resolve_inner_ecodes(new_remappings)
+    return new_remappings
 
-def normalize_value(mapping):
-    value = mapping.get('value')
-    if value is None or type(value) is list:
-        return
-    mapping['value'] = [mapping['value']]
-
-
-def resolve_ecodes(by_name):
-    def resolve_mapping(mapping):
-        if 'code' in mapping:
-            mapping['code'] = ecodes.ecodes[mapping['code']]
-        if 'type' in mapping:
-            mapping['type'] = ecodes.ecodes[mapping['type']]
-        return mapping
-    return {ecodes.ecodes[key]: list(map(resolve_mapping, mappings))
-            for key, mappings in by_name.items()}
-
+def resolve_inner_ecodes(node):
+    if type(node) is list:
+        for item in node:
+            resolve_inner_ecodes(item)
+    elif type(node) is dict:
+        for key, value in node.items():
+            if type(value) in [dict, list]:
+                resolve_inner_ecodes(value)
+            elif key=='code':
+                node[key]=ecodes.ecodes[value]
+            elif key=='type':
+                node[key]=ecodes.ecodes[value]
+            elif key=='value' and type(value) is not list:
+                node[key]=[value]
 
 def find_input(device):
     name = device.get('input_name', None)
