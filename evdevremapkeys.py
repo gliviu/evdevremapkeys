@@ -278,6 +278,19 @@ def find_input(device):
         return input
     return None
 
+def get_all_codes(node):
+    out = set()
+    if type(node) is list:
+        for item in node:
+            out.update(get_all_codes(item))
+    elif type(node) is dict:
+        for key, value in node.items():
+            if type(value) in [dict, list]:
+                out.update(get_all_codes(value))
+            elif key=='code':
+                out.add(node[key])
+    return out
+
 
 def register_device(device):
     input = find_input(device)
@@ -292,9 +305,7 @@ def register_device(device):
     remappings = device['remappings']
     extended = set(caps[ecodes.EV_KEY])
 
-    def flatmap(lst):
-        return [l2 for l1 in lst for l2 in l1]
-    extended.update([remapping['code'] for remapping in flatmap(remappings.values())])
+    extended.update(get_all_codes(remappings))
     caps[ecodes.EV_KEY] = list(extended)
 
     output = UInput(caps, name=device['output_name'])
