@@ -63,13 +63,7 @@ def repeat_event(event, rate, count, codes, values, output):
         count = -1
     while count is not 0:
         count -= 1
-        for value in values:
-            event.value = value
-            for code in codes:
-                event.code = code
-                print(f'xx {event}, {values}')
-                output.write_event(event)
-                output.syn()
+        write_output(codes, values, event, output)
         yield from asyncio.sleep(rate)
 
 @asyncio.coroutine
@@ -87,6 +81,16 @@ def long_press_event(long_press, event, original_code, output):
     event.type = long_press_type if long_press_type else event.type
     repeat_tasks[original_code] = asyncio.ensure_future(repeat_event(event, rate, count, long_press_code, long_press_value, output))
 
+def write_output(codes, values, event, output):
+    for value in values:
+        event.value = value
+        for code in codes:
+            event.code = code
+            # print(f'xx {event}, {values}')
+            output.write_event(event)
+            output.syn()
+
+
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
         original_code = event.code
@@ -99,12 +103,7 @@ def remap_event(output, event, remappings):
         long_press = remapping.get('long_press', None)
         if not (repeat or delay or long_press):
             values = remapping.get('value', [event.value])
-            for value in values:
-                event.value = value
-                for code in codes:
-                    event.code = code
-                    output.write_event(event)
-                    output.syn()
+            write_output(codes, values, event, output)
         else:
             is_key_down = event.value is KEY_DOWN
             is_key_up = event.value is KEY_UP
@@ -138,12 +137,7 @@ def remap_event(output, event, remappings):
                         # handle short press
                         long_press_task.cancel()
                         del long_press_tasks[original_code]
-                        for value in [KEY_DOWN, KEY_UP]: # simulate key press (key_down/key_up)
-                            event.value = value
-                            for code in codes:
-                                event.code = code
-                                output.write_event(event)
-                                output.syn()
+                        write_output(codes, [KEY_DOWN, KEY_UP], event, output) # simulate key press (key_down/key_up)
                     repeat_task = repeat_tasks.pop(original_code, None)
                     if repeat_task:
                         repeat_task.cancel()
