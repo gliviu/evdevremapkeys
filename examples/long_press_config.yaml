@@ -49,6 +49,12 @@ devices:
         code: REL_WHEEL
         type: EV_REL
         repeat: true
+    # paste
+    BTN_RIGHT:
+    - code: BTN_RIGHT
+      long_press:
+        duration: .2
+        code: [KEY_LEFTCTRL, KEY_V]
 
 
     BTN_RIGHT:

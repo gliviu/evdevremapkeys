@@ -37,6 +37,7 @@ import yaml
 
 
 DEFAULT_RATE = .1  # seconds
+DEFAULT_LONG_PRESS_DURATION = .2  # seconds
 KEY_DOWN = 1
 KEY_UP = 0
 repeat_tasks = {}
@@ -73,7 +74,7 @@ def repeat_event(event, rate, count, codes, values, output):
 
 @asyncio.coroutine
 def long_press_event(long_press, event, original_code, output):
-    long_press_duration = long_press.get('duration', None)
+    long_press_duration = long_press.get('duration', DEFAULT_LONG_PRESS_DURATION)
     long_press_value = long_press.get('value', [KEY_DOWN, KEY_UP])
     long_press_code = long_press.get('code', [])
     if type(long_press_code) is not list:
