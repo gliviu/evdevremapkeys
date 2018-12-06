@@ -26,7 +26,7 @@ devices:
         complex_param2:
           duration: .2
           value: 1
-          code: BTN_LEFT
+          code: [BTN_LEFT, BTN_RIGHT]
           repeat: true
           type: EV_REL
         code: BTN_LEFT
