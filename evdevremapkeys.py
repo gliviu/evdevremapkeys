@@ -244,19 +244,14 @@ def resolve_ecodes(remappings):
     return new_remappings
 
 def resolve_inner_ecodes(node):
-    if type(node) is list:
-        for item in node:
-            resolve_inner_ecodes(item)
-    elif type(node) is dict:
-        for key, value in node.items():
-            if type(value) in [dict, list]:
-                resolve_inner_ecodes(value)
-            elif key=='code':
-                node[key]=ecodes.ecodes[value]
-            elif key=='type':
-                node[key]=ecodes.ecodes[value]
-            elif key=='value' and type(value) is not list:
-                node[key]=[value]
+    for node, key in traverse(node):
+        value = node[key]
+        if key == 'code':
+            node[key] = ecodes.ecodes[value]
+        elif key == 'type':
+            node[key] = ecodes.ecodes[value]
+        elif key == 'value' and type(value) is not list:
+            node[key] = [value]
 
 def find_input(device):
     name = device.get('input_name', None)
@@ -280,16 +275,21 @@ def find_input(device):
 
 def get_all_codes(node):
     out = set()
+    for node, key in traverse(node):
+        if key == 'code':
+            out.add(node[key])
+    return out
+
+def traverse(node):
     if type(node) is list:
         for item in node:
-            out.update(get_all_codes(item))
+            yield from traverse(item)
     elif type(node) is dict:
         for key, value in node.items():
             if type(value) in [dict, list]:
-                out.update(get_all_codes(value))
-            elif key=='code':
-                out.add(node[key])
-    return out
+                yield from traverse(value)
+            else:
+                yield (node, key)
 
 
 def register_device(device):
