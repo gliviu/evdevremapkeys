@@ -72,11 +72,12 @@ def repeat_event(event, rate, count, values, output):
 @asyncio.coroutine
 def long_press_event(long_press, event, original_code, output):
     long_press_duration = long_press.get('duration', None)
-    long_press_value = long_press.get('value', None)
+    long_press_value = long_press.get('value', [KEY_DOWN, KEY_UP])
     long_press_code = long_press.get('code', None)
     long_press_type = long_press.get('type', None)
-    if long_press_code == None or long_press_value == None:
-        print("long_press_value or long_press_code are not specified", file=sys.stderr)
+    if long_press_code == None:
+        print("long press code is not specified", file=sys.stderr)
+        return
     repeat = long_press.get('repeat', False)
     rate = long_press.get('rate', DEFAULT_RATE)
     count = 1 if not repeat else long_press.get('count', 0)
@@ -94,7 +95,7 @@ def remap_event(output, event, remappings):
         delay = remapping.get('delay', False)
         long_press = remapping.get('long_press', None)
         if not (repeat or delay or long_press):
-            values = remapping.get('value', None) or [event.value]
+            values = remapping.get('value', [event.value])
             for value in values:
                 event.value = value
                 output.write_event(event)
@@ -151,7 +152,7 @@ def remap_event(output, event, remappings):
                 if repeat_task:
                     repeat_task.cancel()
                 if is_key_down:
-                    values = remapping.get('value', None) or [KEY_DOWN, KEY_UP]
+                    values = remapping.get('value', [KEY_DOWN, KEY_UP])
                     repeat_tasks[original_code] = asyncio.ensure_future(
                         repeat_event(event, rate, count, values, output))
 

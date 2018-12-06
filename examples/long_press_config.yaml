@@ -8,7 +8,6 @@ devices:
     - code: BTN_RIGHT
       long_press:
         duration: .2
-        value: [1, 0] # EV_KEY events - 1: key down, 0: key up
         code: BTN_LEFT
         repeat: true
         rate: .1
@@ -18,7 +17,6 @@ devices:
     - code: BTN_RIGHT
       long_press:
         duration: .2
-        value: [1, 0] # EV_KEY events - 1: key down, 0: key up
         code: BTN_LEFT
 #    move up on long click
     BTN_RIGHT:
@@ -34,13 +32,12 @@ devices:
       long_press:
         duration: .2
         code: BTN_RIGHT
-        value: [1, 0] # EV_KEY events - 1: key down, 0: key up
 #    scroll on right long press
     BTN_SIDE:
     - code: BTN_SIDE
       long_press:
         duration: .15
-        value: [-1] # EV_KEY events - 1: key down, 0: key up
+        value: [-1]
         code: REL_WHEEL
         type: EV_REL
         repeat: true
@@ -48,7 +45,7 @@ devices:
     - code: BTN_EXTRA
       long_press:
         duration: .15
-        value: [1] # EV_KEY events - 1: key down, 0: key up
+        value: [1]
         code: REL_WHEEL
         type: EV_REL
         repeat: true
