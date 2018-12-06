@@ -117,23 +117,22 @@ def remap_event(output, event, remappings):
                     output.syn()
             elif long_press:
                 if key_down:
+                    # start long press timer
                     long_press_tasks[original_code] = asyncio.ensure_future(
                         long_press_event(long_press, event, original_code, output))
                 if key_up:
                     long_press_task = long_press_tasks.get(original_code, None)
                     if long_press_task and long_press_task.done():
-                        # long press already handled
+                        # long press occurred
                         del long_press_tasks[original_code]
                     if long_press_task and not long_press_task.done():
                         # handle short press
                         long_press_task.cancel()
                         del long_press_tasks[original_code]
-                        event.value = 1  # key down
-                        output.write_event(event)
-                        output.syn()
-                        event.value = 0  # key up
-                        output.write_event(event)
-                        output.syn()
+                        for value in [1, 0]: # simulate key press (key_down/key_up)
+                            event.value = value
+                            output.write_event(event)
+                            output.syn()
                     repeat_task = repeat_tasks.pop(original_code, None)
                     if repeat_task:
                         repeat_task.cancel()

@@ -13,7 +13,6 @@ devices:
         repeat: true
         rate: .1
         count: 2
-      value: [1, 0] # EV_KEY events - 1: key down, 0: key up
 #    left click on right long click
     BTN_RIGHT:
     - code: BTN_RIGHT
@@ -21,7 +20,6 @@ devices:
         duration: .2
         value: [1, 0] # EV_KEY events - 1: key down, 0: key up
         code: BTN_LEFT
-      value: [1, 0] # EV_KEY events - 1: key down, 0: key up
 #    move up on long click
     BTN_RIGHT:
     - code: BTN_RIGHT
