@@ -90,7 +90,9 @@ def long_press_event(long_press, event, original_code, output):
 def remap_event(output, event, remappings):
     for remapping in remappings[event.code]:
         original_code = event.code
-        event.code = remapping['code']
+        codes = remapping.get('code', [])
+        if type(codes) is not list:
+            codes = [codes]
         event.type = remapping.get('type', None) or event.type
         repeat = remapping.get('repeat', False)
         delay = remapping.get('delay', False)
@@ -99,8 +101,10 @@ def remap_event(output, event, remappings):
             values = remapping.get('value', [event.value])
             for value in values:
                 event.value = value
-                output.write_event(event)
-                output.syn()
+                for code in codes:
+                    event.code = code
+                    output.write_event(event)
+                    output.syn()
         else:
             is_key_down = event.value is KEY_DOWN
             is_key_up = event.value is KEY_UP
@@ -109,6 +113,7 @@ def remap_event(output, event, remappings):
             if not (is_key_up or is_key_down):
                 return
             if delay:
+                event.code = remapping['code']
                 if original_code not in remapped_tasks or remapped_tasks[original_code] == 0:
                     if is_key_down:
                         remapped_tasks[original_code] = count
@@ -135,8 +140,10 @@ def remap_event(output, event, remappings):
                         del long_press_tasks[original_code]
                         for value in [KEY_DOWN, KEY_UP]: # simulate key press (key_down/key_up)
                             event.value = value
-                            output.write_event(event)
-                            output.syn()
+                            for code in codes:
+                                event.code = code
+                                output.write_event(event)
+                                output.syn()
                     repeat_task = repeat_tasks.pop(original_code, None)
                     if repeat_task:
                         repeat_task.cancel()
@@ -155,7 +162,7 @@ def remap_event(output, event, remappings):
                 if is_key_down:
                     values = remapping.get('value', [KEY_DOWN, KEY_UP])
                     repeat_tasks[original_code] = asyncio.ensure_future(
-                        repeat_event(event, rate, count, [event.code], values, output))
+                        repeat_event(event, rate, count, codes, values, output))
 
 # Parses yaml config file and outputs normalized configuration.
 # Sample output:
