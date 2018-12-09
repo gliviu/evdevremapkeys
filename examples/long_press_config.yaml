@@ -1,5 +1,18 @@
+
+# Long-press configuration
+#    BTN_RIGHT:               # key to be mapped
+#    - code: BTN_RIGHT        # short-press key
+#      repeat: true           # whether to repeat short-press key (optional; defaults to false)
+#      rate: .1               # short-press repeat rate (optional; defaults to .1 seconds)
+#      count: 2               # short-press count; must be greater than 0 (optional; defaults to 1)
+#      long_press:            #
+#        code: BTN_LEFT       # long-press key
+#        duration: .2         # seconds to wait before considering it a long-press (optional; defaults to 0.2 seconds)
+#        repeat: true         # whether to repreat long-press key (optional; defaults to false)
+#        rate: .1             # long-press repeat rate (optional; defaults to .1 seconds)
+#        count: 2             # long-press count; if 0 it repeats untill key is depressed (optional; defaults to 0)
+
 devices:
-# Mouse scroll
 - input_name: 'Compx 2.4G Receiver'
   input_phys: 'usb-0000:00:14.0-3/input1'
   output_name: remap-mouse
@@ -13,6 +26,16 @@ devices:
         repeat: true
         rate: .1
         count: 2
+    # Map middle button to 'right click' when long pressed and double click when short pressed
+    BTN_MIDDLE:
+    - code: BTN_LEFT
+      long_press:
+        duration: .2
+        code: BTN_RIGHT
+      repeat: true
+      rate: .1
+      count: 2
+
     # Map side buttons to vertical scroll
     # Scroll event is repeated as long as button is kept pressed.
     # Original behaviour (back/forward) is kept for short click.

@@ -107,11 +107,11 @@ def remap_event(output, event, remappings):
         else:
             is_key_down = event.value is KEY_DOWN
             is_key_up = event.value is KEY_UP
-            count = remapping.get('count', 0)
 
             if not (is_key_up or is_key_down):
                 return
             if delay:
+                count = remapping.get('count', 0)
                 event.code = remapping['code']
                 if original_code not in remapped_tasks or remapped_tasks[original_code] == 0:
                     if is_key_down:
@@ -131,18 +131,28 @@ def remap_event(output, event, remappings):
                 if is_key_up:
                     long_press_task = long_press_tasks.get(original_code, None)
                     if long_press_task and long_press_task.done():
-                        # long press occurred
+                        # long press already handled; just cleanup
                         del long_press_tasks[original_code]
                     if long_press_task and not long_press_task.done():
                         # handle short press
                         long_press_task.cancel()
-                        del long_press_tasks[original_code]
-                        write_output(codes, [KEY_DOWN, KEY_UP], event, output) # simulate key press (key_down/key_up)
+                        if repeat:
+                            rate = remapping.get('rate', DEFAULT_RATE)
+                            values = remapping.get('value', [KEY_DOWN, KEY_UP])
+                            count = remapping.get('count', 1)
+                            asyncio.ensure_future(
+                                repeat_event(event, rate, count, codes, values, output))
+                            pass
+                        else:
+                            del long_press_tasks[original_code]
+                            write_output(codes, [KEY_DOWN, KEY_UP], event, output) # simulate key press (key_down/key_up)
+                    # cleanup any repeating task started during long press handling
                     repeat_task = repeat_tasks.pop(original_code, None)
                     if repeat_task:
                         repeat_task.cancel()
 
             elif repeat:
+                count = remapping.get('count', 0)
                 # count > 0  - ignore key-up events
                 # count is 0 - repeat until key-up occurs
                 ignore_key_up = count > 0
