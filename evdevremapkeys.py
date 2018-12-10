@@ -263,9 +263,9 @@ def resolve_inner_ecodes(node):
         value = node[key]
         if key == 'code' and type(value) is list:
             node[key] = [ecodes.ecodes[code] for code in value]
-        elif key == 'code' and type(value) is str:
+        elif key == 'code' and type(value) is not list:
             node[key] = ecodes.ecodes[value]
-        elif key == 'type' and type(value) is str:
+        elif key == 'type' and type(value):
             node[key] = ecodes.ecodes[value]
         elif key == 'value' and type(value) is not list:
             node[key] = [value]
@@ -296,7 +296,7 @@ def get_all_codes(node):
         value = node[key]
         if key == 'code' and type(value) is list:
             out.update(value)
-        elif key == 'code' and type(value) is str:
+        elif key == 'code' and type(value) is not list:
             out.add(value)
     return out
 
