@@ -59,14 +59,14 @@ devices:
   input_phys: 'isa0060/serio0/input0'
   output_name: remap-asus-kb
   remappings:
-    # Map TAB to paste when long pressed. Original behaviour remains on short press.
-    KEY_TAB:
-      - code: KEY_TAB
-        long_press:
-          code: [KEY_LEFTCTRL, KEY_V]
-    # Map F1 to copy when long pressed. Original behaviour remains on long press.
+    # Map F1 to 'copy' when short pressed. Original behaviour remains on long press.
     KEY_F1:
       - code: [KEY_LEFTCTRL, KEY_C]
         long_press:
           code: KEY_F1
+    # Map TAB to 'paste' when long pressed. Original behaviour remains on short press.
+    KEY_TAB:
+      - code: KEY_TAB
+        long_press:
+          code: [KEY_LEFTCTRL, KEY_V]
 

@@ -46,4 +46,4 @@ devices:
     KEY_LEFTALT:
     - code: KEY_A
       value: [1,0,1,0]
-repeat: true
+      repeat: true

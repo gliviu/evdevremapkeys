@@ -86,7 +86,6 @@ def write_output(codes, values, event, output):
         event.value = value
         for code in codes:
             event.code = code
-            # print(f'xx {event}, {values}')
             output.write_event(event)
             output.syn()
 
